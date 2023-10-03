@@ -1,0 +1,134 @@
+{
+  "name": "spark_job_failures_due_to_cluster_resource_contentions",
+  "description": "This incident type refers to a situation where Spark jobs are failing due to resource contentions in the cluster. When multiple Spark jobs are trying to access the same resources or data at the same time, it can cause a bottleneck that leads to job failures. This can happen when the resources in the cluster are not properly allocated or when the number of jobs running simultaneously exceeds the cluster's capacity to handle them. The result is that Spark jobs fail, leading to disruptions in data processing and analysis.",
+  "params": [
+    {
+      "name": "NUM_NODES",
+      "value": ""
+    },
+    {
+      "name": "NEW_CPU_VALUE",
+      "value": ""
+    },
+    {
+      "name": "LOG_FILE",
+      "value": ""
+    },
+    {
+      "name": "CLUSTER_PROCESS_NAME",
+      "value": ""
+    },
+    {
+      "name": "NEW_MEMORY_VALUE",
+      "value": ""
+    },
+    {
+      "name": "JOB_ID",
+      "value": ""
+    },
+    {
+      "name": "HOST_NAME",
+      "value": ""
+    },
+    {
+      "name": "K8S_CLUSTER_NAME",
+      "value": ""
+    },
+    {
+      "name": "NAMESPACE",
+      "value": ""
+    }
+  ],
+  "cells": [
+    {
+      "name": "cell_1",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Spark job failures due to cluster resource contentions.\nThis incident type refers to a situation where Spark jobs are failing due to resource contentions in the cluster. When multiple Spark jobs are trying to access the same resources or data at the same time, it can cause a bottleneck that leads to job failures. This can happen when the resources in the cluster are not properly allocated or when the number of jobs running simultaneously exceeds the cluster's capacity to handle them. The result is that Spark jobs fail, leading to disruptions in data processing and analysis."
+    },
+    {
+      "name": "cell_2",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Get the status of the Spark cluster"
+    },
+    {
+      "name": "cell_3",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `spark-status`"
+    },
+    {
+      "name": "cell_4",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the resource usage of the Spark jobs"
+    },
+    {
+      "name": "cell_5",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `yarn application -status ${JOB_ID}`"
+    },
+    {
+      "name": "cell_6",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check if any nodes in the cluster are overloaded"
+    },
+    {
+      "name": "cell_7",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `top -d 1 -b | grep -E '(Cpu|Memory)' | head -n ${NUM_NODES}`"
+    },
+    {
+      "name": "cell_8",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Analyze the Spark logs for any errors or exceptions"
+    },
+    {
+      "name": "cell_9",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `grep -i -e 'error' -e 'exception' ${LOG_FILE}`"
+    },
+    {
+      "name": "cell_10",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the network usage of the cluster nodes"
+    },
+    {
+      "name": "cell_11",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `netstat -s | grep -E 'segments retransmitted' | head -n ${NUM_NODES}`"
+    },
+    {
+      "name": "cell_12",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Not enough resources allocated to the Spark job causing it to compete with other jobs running on the cluster."
+    },
+    {
+      "name": "cell_13",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_resource_checker($CLUSTER_PROCESS_NAME, $JOB_ID)"
+    },
+    {
+      "name": "cell_14",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Increasing the resources allocated to the cluster, like memory and CPU, to avoid contention."
+    },
+    {
+      "name": "cell_15",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_increase_cluster_limits($NEW_CPU_VALUE, $CLUSTER_PROCESS_NAME, $NEW_MEMORY_VALUE)"
+    }
+  ]
+}
